@@ -43,12 +43,15 @@ class Domains():
     Domain list seperated by line feed char
   """
   @mimetype('text/plain')
-  def GET(self,site,status='up',rank='0'):
-    blocked = status == 'down'
+  def GET(self,site,status='up',rank='0',*args,**kwargs):
+    if status not in ('up','down'):
+      raise HTTPError(400,"Status must be either up or down.")
     try:
       rank = int(rank)
     except ValueError:
-      rank = 0
+      raise HTTPError(400,"Rank must be integer.")
+
+    blocked = status == 'down'
     if rank != 0:
       role(['admin','mandator'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank)
     else:
@@ -64,7 +67,7 @@ class Domains():
 
 
   """
-  PUT /domains/$site/
+  POST /domains/$site/
     Body:up=a.example.com,b.example.com&down=x.example.com
     Params:
       site: The site ID
@@ -73,7 +76,7 @@ class Domains():
   """
   @role(['admin','mandator'])
   @mimetype('text/plain')
-  def POST(self,site,up,down):
+  def POST(self,site,up,down,*args,**kwargs):
     db = sqlite3.connect(settings.DB_FILE_PATH)
     cursor = db.cursor()
 

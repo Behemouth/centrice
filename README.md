@@ -18,7 +18,7 @@ Mirror Domain Distribution Central Service
         Domain list seperated by line feed char
 
 
-2. PUT /domains/$site/
+2. POST /domains/$site/
     Body:up=a.example.com,b.example.com&down=x.example.com
     Params:
       site: The site ID

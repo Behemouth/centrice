@@ -43,7 +43,9 @@ class Domains():
     Domain list seperated by line feed char
   """
   @mimetype('text/plain')
-  def GET(self,site,status='up',rank='0',*args,**kwargs):
+  def GET(self,site=None,status='up',rank='0',*args,**kwargs):
+    if site is None:
+      raise HTTPError(400,"Site id required.")
     if status not in ('up','down'):
       raise HTTPError(400,"Status must be either up or down.")
     try:
@@ -53,7 +55,7 @@ class Domains():
 
     blocked = status == 'down'
     if rank != 0:
-      role(['admin','mandator'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank)
+      return role(['admin','mandator'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank)
     else:
       return self._fetch(site,blocked,rank)
 
@@ -80,18 +82,20 @@ class Domains():
     db = sqlite3.connect(settings.DB_FILE_PATH)
     cursor = db.cursor()
 
-    up_domains = filter(None,set(re.split('[,\s]+',up)))
-    down_domains = filter(None,set(re.split('[,\s]+',down)))
+    up_domains = set(filter(None,set(re.split('[,\s]+',up))))
+    down_domains = set(filter(None,set(re.split('[,\s]+',down))))
+    ranked_up_domains = rankDomains(up_domains) # :: [(Rank,Domain)]
+    ranked_down_domains = rankDomains(down_domains)
 
     cursor.execute('DELETE FROM MirrorDomain WHERE site=:site',{"site":site})
 
     blocked = False
-    updates = map(lambda domain:(domain,site,blocked),up_domains)
-    cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked) values(?,?,?)',updates)
+    updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_up_domains)
+    cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
 
     blocked = True
-    updates = map(lambda domain:(domain,site,blocked),down_domains)
-    cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked) values(?,?,?)',updates)
+    updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_down_domains)
+    cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
 
     db.commit()
     db.close()

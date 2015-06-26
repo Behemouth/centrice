@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
-import cherrypy,settings,threading
+import cherrypy,settings,threading,random
+from collections import defaultdict
 
+EACH_RANK_DOMAIN_COUNT = 5
 
 lock = threading.Lock()
 
@@ -41,3 +43,54 @@ def mimetype(type):
             return func(*args, **kwargs)
         return wrapper
     return decorate
+
+
+
+"""
+Return [(Rank,Domain)]
+"""
+def rankDomains(domains):
+  domains = map(lambda d:(d.split('.',1)[1],d),domains)
+  random.shuffle(domains)
+  grouped = defaultdict(list)
+  for provider,domain in domains:
+    grouped[provider].append(domain)
+
+  domains = filter(None,sum(map(None,*grouped.values()+[[None]]),tuple()))
+  rank = 0
+  i = 0
+  ranked = []
+  for d in domains:
+    ranked.append( (rank,d) )
+    i += 1
+    if i >= EACH_RANK_DOMAIN_COUNT:
+      rank += 1
+      i = 0
+
+  if i > 0 and i < EACH_RANK_DOMAIN_COUNT and rank > 0: # last rank is not fulfilled,merge it with previous rank
+    while i > 0:
+      ranked[-i] = (ranked[-i][0]-1,ranked[-i][1])
+      i -= 1
+
+  return ranked
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

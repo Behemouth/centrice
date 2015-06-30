@@ -50,6 +50,9 @@ def mimetype(type):
 Return [(Rank,Domain)]
 """
 def rankDomains(domains):
+  if not domains:
+    return []
+
   domains = map(lambda d:(d.split('.',1)[1],d),domains)
   random.shuffle(domains)
   grouped = defaultdict(list)

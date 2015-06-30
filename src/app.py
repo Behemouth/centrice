@@ -84,18 +84,22 @@ class Domains():
 
     up_domains = set(filter(None,set(re.split('[,\s]+',up))))
     down_domains = set(filter(None,set(re.split('[,\s]+',down))))
-    ranked_up_domains = rankDomains(up_domains) # :: [(Rank,Domain)]
-    ranked_down_domains = rankDomains(down_domains)
+
 
     cursor.execute('DELETE FROM MirrorDomain WHERE site=:site',{"site":site})
 
-    blocked = False
-    updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_up_domains)
-    cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
 
-    blocked = True
-    updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_down_domains)
-    cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
+    if up_domains:
+      ranked_up_domains = rankDomains(up_domains) # :: [(Rank,Domain)]
+      blocked = False
+      updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_up_domains)
+      cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
+
+    if down_domains:
+      ranked_down_domains = rankDomains(down_domains)
+      blocked = True
+      updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_down_domains)
+      cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
 
     db.commit()
     db.close()

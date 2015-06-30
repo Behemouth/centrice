@@ -35,19 +35,24 @@ class Domains():
   GET /domains/$site/?status=up&rank=0
     Params:
       site: The site id, required
-      rank: The domain rank, default is 0, i.e. public.
       status: The accessible status, default is up,i.e. not blocked.
               Enum(up|down)
+      rank: The domain rank, default is 0, i.e. public.
+      format: The output format, default is 'plain', means output plain text, domains seperated by line feed
+              Enum(plain|json)
 
   Output:
     Domain list seperated by line feed char
   """
   @mimetype('text/plain')
-  def GET(self,site=None,status='up',rank='0',*args,**kwargs):
+  def GET(self,site=None,status='up',rank='0',format='plain',*args,**kwargs):
     if site is None:
       raise HTTPError(400,"Site id required.")
     if status not in ('up','down'):
       raise HTTPError(400,"Status must be either up or down.")
+    if format  not in ('plain','json'):
+      raise HTTPError(400,"Output must be either plain or json.")
+
     try:
       rank = int(rank)
     except ValueError:
@@ -55,17 +60,20 @@ class Domains():
 
     blocked = status == 'down'
     if rank != 0:
-      return role(['admin','mandator'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank)
+      return role(['admin','mandator'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank,format)
     else:
-      return self._fetch(site,blocked,rank)
+      return self._fetch(site,blocked,rank,format)
 
-  def _fetch(self,site,blocked,rank):
+  def _fetch(self,site,blocked,rank,format):
     db = sqlite3.connect(settings.DB_FILE_PATH)
     cursor = db.cursor()
     cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? AND blocked=?',(site,rank,blocked))
     domains = map(lambda t:t[0],cursor.fetchall())
     db.close()
-    return "\n".join(domains) + "\n"
+    if format == 'plain':
+      return "\n".join(domains) + "\n"
+    elif format == 'json':
+      return json.dumps(domains)
 
 
   """

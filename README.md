@@ -10,9 +10,11 @@ Mirror Domain Distribution Central Service
       GET /domains/$site/up
       Params:
         site: The site id, required
-        rank: The domain rank, default is 0, i.e. public, higher rank requires higher authority.
         status: The accessible status, default is up,i.e. not blocked.
                 Enum(up|down)
+        rank: The domain rank, default is 0, i.e. public, higher rank requires higher authority.
+        format: The output format, default is 'plain', means output plain text, domains seperated by line feed
+              Enum(plain|json)
 
       Output:
         Domain list seperated by line feed char

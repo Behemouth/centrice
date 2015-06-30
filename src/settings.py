@@ -16,7 +16,7 @@ USERS = { # Override this in `settings_local.py`
 # Enum(''|'production')
 environment = ''
 
-host = '0.0.0.0'
+host = '127.0.0.1'
 port = 1988
 
 # Set the CA file path to enable https

@@ -46,12 +46,14 @@ class Domains():
   """
   @mimetype('text/plain')
   def GET(self,site=None,status='up',rank='0',format='plain',*args,**kwargs):
-    if site is None:
-      raise HTTPError(400,"Site id required.")
-    if status not in ('up','down'):
-      raise HTTPError(400,"Status must be either up or down.")
+
     if format not in ('plain','json'):
       raise HTTPError(400,"Output format must be either plain or json.")
+    if site is None:
+      return self._list_all_sites(format)
+    if status not in ('up','down'):
+      raise HTTPError(400,"Status must be either up or down.")
+
 
     try:
       rank = int(rank)
@@ -74,6 +76,17 @@ class Domains():
       return "\n".join(domains) + "\n"
     elif format == 'json':
       return json.dumps(domains)
+
+  def _list_all_sites(self,format):
+    db = sqlite3.connect(settings.DB_FILE_PATH)
+    cursor = db.cursor()
+    cursor.execute('SELECT DISTINCT site FROM MirrorDomain')
+    sites = map(lambda t:t[0],cursor.fetchall())
+    db.close()
+    if format == 'plain':
+      return "Site id list:\n" + "\n".join(sites) + "\n"
+    elif format  == 'json':
+      return json.dumps(dict(siteIdList=sites))
 
 
   """

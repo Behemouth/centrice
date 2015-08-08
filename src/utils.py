@@ -45,6 +45,11 @@ def mimetype(type):
     return decorate
 
 
+def _splitDomainSuffix(d):
+  try:
+    return (d.split('.',1)[1],d)
+  except IndexError:
+    raise Exception("Domain '%s' format is not valid, dot separator expected!" % d)
 
 """
 Return [(Rank,Domain)]
@@ -53,7 +58,7 @@ def rankDomains(domains):
   if not domains:
     return []
 
-  domains = map(lambda d:(d.split('.',1)[1],d),domains)
+  domains = map(_splitDomainSuffix,domains)
   random.shuffle(domains)
   grouped = defaultdict(list)
   for provider,domain in domains:

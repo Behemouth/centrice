@@ -50,8 +50,8 @@ class Domains():
       raise HTTPError(400,"Site id required.")
     if status not in ('up','down'):
       raise HTTPError(400,"Status must be either up or down.")
-    if format  not in ('plain','json'):
-      raise HTTPError(400,"Output must be either plain or json.")
+    if format not in ('plain','json'):
+      raise HTTPError(400,"Output format must be either plain or json.")
 
     try:
       rank = int(rank)
@@ -93,11 +93,12 @@ class Domains():
     up_domains = set(filter(None,set(re.split('[,\s]+',up))))
     down_domains = set(filter(None,set(re.split('[,\s]+',down))))
 
-
-    cursor.execute('DELETE FROM MirrorDomain WHERE site=:site',{"site":site})
-
+    cursor.execute('DELETE FROM MirrorDomain WHERE site=:site AND blocked=1',{"site":site})
 
     if up_domains:
+      # delete old up domains only when new up domains are available
+      cursor.execute('DELETE FROM MirrorDomain WHERE site=:site AND blocked=0',{"site":site})
+
       ranked_up_domains = rankDomains(up_domains) # :: [(Rank,Domain)]
       blocked = False
       updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_up_domains)

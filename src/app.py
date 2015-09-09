@@ -69,8 +69,12 @@ class Domains():
   def _fetch(self,site,blocked,rank,format):
     db = sqlite3.connect(settings.DB_FILE_PATH)
     cursor = db.cursor()
-    cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? AND blocked=?',(site,rank,blocked))
+    order = 'ASC'
+    if blocked:
+      order = 'DESC'
+    cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? ORDER BY blocked ' + order,(site,rank))
     domains = map(lambda t:t[0],cursor.fetchall())
+    domains = domains[0:5]
     db.close()
     if format == 'plain':
       return "\n".join(domains) + "\n"

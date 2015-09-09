@@ -108,19 +108,19 @@ class Domains():
 
     cursor.execute('DELETE FROM MirrorDomain WHERE site=:site AND blocked=1',{"site":site})
 
-    if up_domains:
-      # delete old up domains only when new up domains are available
-      cursor.execute('DELETE FROM MirrorDomain WHERE site=:site AND blocked=0',{"site":site})
-
-      ranked_up_domains = rankDomains(up_domains) # :: [(Rank,Domain)]
-      blocked = False
-      updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_up_domains)
-      cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
-
     if down_domains:
       ranked_down_domains = rankDomains(down_domains)
       blocked = True
       updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_down_domains)
+      cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
+
+    if up_domains:
+      # mark old up domains to down only when new up domains are available
+      cursor.execute('UPDATE MirrorDomain SET blocked=1 WHERE site=:site',{"site":site})
+
+      ranked_up_domains = rankDomains(up_domains) # :: [(Rank,Domain)]
+      blocked = False
+      updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_up_domains)
       cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
 
     db.commit()

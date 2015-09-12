@@ -5,8 +5,9 @@ USERS = { # Override this in `settings_local.py`
   # UserName as key
   'guest':{
     'password': 'guest',
-    # type role = Enum(guest|mandator|admin)
+    # type role = Enum(guest|vip|mandator|admin)
     #   guest: only have the permission to `fetch` public rank domains
+    #   vip: have the permission to `fetch` all rank domains
     #   mandator: can `fetch` and `update` all domains
     #   admin: reserved
     'role': 'guest'

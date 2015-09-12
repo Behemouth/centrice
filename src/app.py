@@ -62,7 +62,7 @@ class Domains():
 
     blocked = status == 'down'
     if rank != 0:
-      return role(['admin','mandator'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank,format)
+      return role(['admin','mandator','vip'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank,format)
     else:
       return self._fetch(site,blocked,rank,format)
 

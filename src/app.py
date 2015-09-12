@@ -72,7 +72,11 @@ class Domains():
     order = 'ASC'
     if blocked:
       order = 'DESC'
-    cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? ORDER BY blocked ' + order,(site,rank))
+    if rank == 0:
+      cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? ORDER BY blocked ' + order,(site,rank))
+    else:
+      cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? AND blocked=?',(site,rank,blocked))
+
     domains = map(lambda t:t[0],cursor.fetchall())
     domains = domains[0:5]
     db.close()

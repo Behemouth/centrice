@@ -2,7 +2,10 @@
 import cherrypy,settings,threading,random
 from collections import defaultdict
 
-EACH_RANK_DOMAIN_COUNT = 5
+# Default public rank only have three available domains
+PUBLIC_RANK_DOMAIN_COUNT = 3
+# Rank 0 has 3, Rank 1 has 4,Rank 2 has 5....
+RANK_INCREASE_RATE = 1
 
 lock = threading.Lock()
 
@@ -26,6 +29,7 @@ def role(roleNameList): # roleNameList: "*" | ["roleName"]
       if role not in roleNameList:
         status = "403 Forbidden Role:" + role
         cherrypy.response.status = status
+        cherrypy.response.headers['Content-Type'] = 'text/html'
         return "<h1>" + status + "</h1>"
       return f(*args,**kwargs)
 
@@ -55,30 +59,23 @@ def _splitDomainSuffix(d):
 Return [(Rank,Domain)]
 """
 def rankDomains(domains):
-  if not domains:
-    return []
-
   domains = map(_splitDomainSuffix,domains)
-  random.shuffle(domains)
+
   grouped = defaultdict(list)
   for provider,domain in domains:
     grouped[provider].append(domain)
 
-  domains = filter(None,sum(map(None,*grouped.values()+[[None]]),tuple()))
-  rank = 0
-  i = 0
-  ranked = []
+  # intersperse domains in different provider
+  domains = filter(None,sum(map(None,*grouped.values() + [[None]]),tuple()))
+
+  rank = 0 ; i = 0 ; ranked = []
+  rank_count = PUBLIC_RANK_DOMAIN_COUNT
   for d in domains:
     ranked.append( (rank,d) )
     i += 1
-    if i >= EACH_RANK_DOMAIN_COUNT:
-      rank += 1
-      i = 0
-
-  if i > 0 and i < EACH_RANK_DOMAIN_COUNT and rank > 0: # last rank is not fulfilled,merge it with previous rank
-    while i > 0:
-      ranked[-i] = (ranked[-i][0]-1,ranked[-i][1])
-      i -= 1
+    if i >= rank_count:
+      rank += 1 ; i = 0
+      rank_count += RANK_INCREASE_RATE
 
   return ranked
 

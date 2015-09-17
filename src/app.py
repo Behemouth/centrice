@@ -36,53 +36,72 @@ class Domains():
     Params:
       site: The site id, required
       status: The accessible status, default is up,i.e. not blocked.
-              Enum(up|down)
-      rank: The domain rank, default is 0, i.e. public.
+              Enum(up|down|all)
+      rank: The domain rank, default is 0, i.e. public. use rank=all to get all domains
       format: The output format, default is 'plain', means output plain text, domains seperated by line feed
-              Enum(plain|json)
+              Enum(plain|json|detail)
+                Format 'detail' will output each JSON with each domain's detail information: [DomainObject]
+                [{domain:"up.a.com",blocked:true,rank:1}]
+
 
   Output:
     Domain list seperated by line feed char
   """
   @mimetype('text/plain')
   def GET(self,site=None,status='up',rank='0',format='plain',*args,**kwargs):
-
-    if format not in ('plain','json'):
+    if format not in ('plain','json','detail'):
       raise HTTPError(400,"Output format must be either plain or json.")
     if site is None:
       return self._list_all_sites(format)
-    if status not in ('up','down'):
-      raise HTTPError(400,"Status must be either up or down.")
+    if status not in ('up','down','all'):
+      raise HTTPError(400,"Status must be either up or down or all.")
 
+    if rank != 'all':
+      try:
+        rank = int(rank)
+      except ValueError:
+        raise HTTPError(400,"Rank must be integer.")
 
-    try:
-      rank = int(rank)
-    except ValueError:
-      raise HTTPError(400,"Rank must be integer.")
-
-    blocked = status == 'down'
-    if rank != 0:
-      return role(['admin','mandator','vip'])(lambda *args,**kwargs:self._fetch(*args,**kwargs))(site,blocked,rank,format)
+    if rank != 0 :
+      cb = lambda *args,**kwargs: self._fetch(*args,**kwargs)
+      return role(['admin','mandator','vip'])(cb)(site,status,rank,format)
     else:
-      return self._fetch(site,blocked,rank,format)
+      return self._fetch(site,status,rank,format)
 
-  def _fetch(self,site,blocked,rank,format):
+  def _fetch(self,site,status,rank,format):
     db = sqlite3.connect(settings.DB_FILE_PATH)
     cursor = db.cursor()
-    order = 'ASC'
-    if blocked:
-      order = 'DESC'
-    if rank == 0:
-      cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? ORDER BY blocked ' + order,(site,rank))
-    else:
-      cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=? AND blocked=?',(site,rank,blocked))
 
-    domains = map(lambda t:t[0],cursor.fetchall())
-    domains = domains[0:5]
+    if rank == 0:
+      order = 'ASC'
+      if status == 'down':
+        order = 'DESC'
+      cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=0 ORDER BY blocked ' + order + ' LIMIT 6',(site,))
+    else:
+      condSQL = ''
+      condValue = (site,)
+
+      if rank != 'all':
+        condSQL += ' AND rank=?'
+        condValue += (rank,)
+
+      if status != 'all':
+        condSQL += ' AND blocked=?'
+        condValue += (status=='down',)
+
+      cursor.execute('SELECT domain,blocked,rank FROM MirrorDomain WHERE site=? '+condSQL,condValue)
+
+    domains = cursor.fetchall()
     db.close()
+
+    if format == 'detail':
+      domains = map(lambda t:{"domain":t[0],"blocked":t[1],"rank":t[2]},domains)
+    else:
+      domains = map(lambda t:t[0],domains)
+
     if format == 'plain':
       return "\n".join(domains) + "\n"
-    elif format == 'json':
+    elif format == 'json' or format == 'detail':
       return json.dumps(domains)
 
   def _list_all_sites(self,format):
@@ -92,7 +111,7 @@ class Domains():
     sites = map(lambda t:t[0],cursor.fetchall())
     db.close()
     if format == 'plain':
-      return "Site id list:\n" + "\n".join(sites) + "\n"
+      return "\n".join(sites) + "\n"
     elif format  == 'json':
       return json.dumps(dict(siteIdList=sites))
 
@@ -114,13 +133,10 @@ class Domains():
     up_domains = set(filter(None,set(re.split('[,\s]+',up))))
     down_domains = set(filter(None,set(re.split('[,\s]+',down))))
 
-    cursor.execute('DELETE FROM MirrorDomain WHERE site=:site AND blocked=1',{"site":site})
-
     if down_domains:
-      ranked_down_domains = rankDomains(down_domains)
-      blocked = True
-      updates = map(lambda (rank,domain):(domain,site,blocked,rank),ranked_down_domains)
-      cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked,rank) values(?,?,?,?)',updates)
+      cursor.execute('DELETE FROM MirrorDomain WHERE site=:site AND blocked=1',{"site":site})
+      updates = map(lambda (domain):(domain,site,True),down_domains)
+      cursor.executemany('INSERT OR REPLACE INTO MirrorDomain(domain,site,blocked) values(?,?,?)',updates)
 
     if up_domains:
       # mark old up domains to down only when new up domains are available

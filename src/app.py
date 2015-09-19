@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import cherrypy,settings,json,os,re,sqlite3
+import cherrypy,settings,json,os,re,sqlite3,random
 from cherrypy.lib import auth_basic
 from cherrypy import expose,HTTPError
 from utils import *
@@ -99,7 +99,8 @@ class Domains():
     db.close()
 
     if rank==0:
-      domains = domains + rank_zero_append_domains
+      random.shuffle(rank_zero_append_domains)
+      domains = domains + rank_zero_append_domains[0:5]
 
     if format == 'detail':
       domains = map(lambda t:{"domain":t[0],"blocked":t[1],"rank":t[2]},domains)

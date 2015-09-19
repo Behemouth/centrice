@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
 import os
 
+CUR_DIR = os.path.dirname(os.path.realpath(__file__))
+
 USERS = { # Override this in `settings_local.py`
   # UserName as key
   'guest':{
@@ -26,5 +28,7 @@ ssl_private_key = ''
 
 DB_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),'db.sqlite3')
 
+
+RANK_ZERO_APPEND_FILE = CUR_DIR+'/rank-zero.txt'
 
 from settings_local import *

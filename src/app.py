@@ -4,6 +4,10 @@ import cherrypy,settings,json,os,re,sqlite3
 from cherrypy.lib import auth_basic
 from cherrypy import expose,HTTPError
 from utils import *
+import os.path
+
+
+rank_zero_append_domains = []
 
 
 class Domains():
@@ -76,7 +80,7 @@ class Domains():
       order = 'ASC'
       if status == 'down':
         order = 'DESC'
-      cursor.execute('SELECT domain FROM MirrorDomain WHERE site=? AND rank=0 ORDER BY blocked ' + order + ' LIMIT 6',(site,))
+      cursor.execute('SELECT domain,blocked,rank FROM MirrorDomain WHERE site=? AND rank=0 ORDER BY blocked ' + order + ' LIMIT 3',(site,))
     else:
       condSQL = ''
       condValue = (site,)
@@ -93,6 +97,9 @@ class Domains():
 
     domains = cursor.fetchall()
     db.close()
+
+    if rank==0:
+      domains = domains + rank_zero_append_domains
 
     if format == 'detail':
       domains = map(lambda t:{"domain":t[0],"blocked":t[1],"rank":t[2]},domains)
@@ -130,8 +137,8 @@ class Domains():
     db = sqlite3.connect(settings.DB_FILE_PATH)
     cursor = db.cursor()
 
-    up_domains = set(filter(None,set(re.split('[,\s]+',up))))
-    down_domains = set(filter(None,set(re.split('[,\s]+',down))))
+    up_domains = set(filter(None,re.split('[,\s]+',up.strip())))
+    down_domains = set(filter(None,re.split('[,\s]+',down.strip())))
 
     if down_domains:
       cursor.execute('DELETE FROM MirrorDomain WHERE site=:site AND blocked=1',{"site":site})
@@ -185,8 +192,17 @@ def validate_password(realm,username, password):
      return True
   return False
 
+def read_rank_zero_other_domains():
+  other_domains_file = settings.RANK_ZERO_APPEND_FILE
+  if os.path.isfile(other_domains_file):
+    other_domains = filter(None,re.split('[,\s]+',open(other_domains_file).read().strip()))
+    for domain in other_domains:
+      rank_zero_append_domains.append((domain,0,0))
+
 
 if __name__ == '__main__':
+  read_rank_zero_other_domains()
+
   conf = {
     '/': {
       'tools.auth_basic.on': True,

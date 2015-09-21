@@ -7,6 +7,11 @@ PUBLIC_RANK_DOMAIN_COUNT = 3
 # Rank 0 has 3, Rank 1 has 4,Rank 2 has 5....
 RANK_INCREASE_RATE = 1
 
+# Special reserved rank
+RESERVED_RANK = 9
+# 30 reserved domains in rank 9
+RESERVED_RANK_COUNT = 30
+
 lock = threading.Lock()
 
 def threadLock(f):
@@ -68,7 +73,13 @@ def rankDomains(domains):
   # intersperse domains in different provider
   domains = filter(None,sum(map(None,*grouped.values() + [[None]]),tuple()))
 
-  rank = 0 ; i = 0 ; ranked = []
+  ranked = []
+  if len(domains) > RESERVED_RANK_COUNT + PUBLIC_RANK_DOMAIN_COUNT:
+    reserved = domains[0:RESERVED_RANK_COUNT]
+    domains = domains[RESERVED_RANK_COUNT:-1]
+    ranked += map(lambda d:(RESERVED_RANK,d),reserved)
+
+  rank = 0 ; i = 0 ;
   rank_count = PUBLIC_RANK_DOMAIN_COUNT
   for d in domains:
     ranked.append( (rank,d) )

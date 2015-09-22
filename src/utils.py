@@ -86,6 +86,8 @@ def rankDomains(domains):
     i += 1
     if i >= rank_count:
       rank += 1 ; i = 0
+      if rank == RESERVED_RANK: # skip reserved rank
+        rank += 1
       rank_count += RANK_INCREASE_RATE
 
   return ranked

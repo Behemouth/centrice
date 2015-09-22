@@ -148,7 +148,7 @@ class Domains():
 
     if up_domains:
       # mark old up domains to down only when new up domains are available
-      cursor.execute('UPDATE MirrorDomain SET blocked=1 WHERE site=:site',{"site":site})
+      cursor.execute('UPDATE MirrorDomain SET blocked=1 AND rank=0 WHERE site=:site',{"site":site})
 
       ranked_up_domains = rankDomains(up_domains) # :: [(Rank,Domain)]
       blocked = False
